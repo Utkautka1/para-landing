@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Para — учебная группа на автопилоте</title>
+<meta name="description" content="Telegram-бот для учебной группы: расписание, напоминания о парах, посещаемость, ИИ-помощник с домашкой и расшифровка голосовых.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0a14; --bg2:#121022; --card:#17142b; --line:#2a2548;
+  --text:#ecebf5; --muted:#a29fbf; --violet:#8b5cf6; --pink:#ec4899; --cyan:#22d3ee; --lime:#a3e635;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font:16px/1.6 Manrope,system-ui,sans-serif;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+
+/* фон: мягкие пятна + сетка */
+.glow{position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(600px 400px at 15% 10%,rgba(139,92,246,.35),transparent 70%),
+    radial-gradient(500px 400px at 90% 30%,rgba(236,72,153,.22),transparent 70%),
+    radial-gradient(600px 500px at 50% 100%,rgba(34,211,238,.15),transparent 70%);}
+.grid{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.25;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:56px 56px;mask-image:radial-gradient(ellipse at 50% 20%,#000 30%,transparent 75%)}
+
+nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
+.logo{font:800 22px Unbounded,sans-serif;letter-spacing:.5px}
+.logo span{background:linear-gradient(90deg,var(--violet),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:999px;font-weight:700;transition:.2s}
+.btn-main{background:linear-gradient(90deg,var(--violet),var(--pink));color:#fff;box-shadow:0 10px 30px -10px rgba(236,72,153,.6)}
+.btn-main:hover{transform:translateY(-2px);box-shadow:0 16px 40px -10px rgba(236,72,153,.8)}
+.btn-ghost{border:1px solid var(--line);color:var(--text)}
+.btn-ghost:hover{border-color:var(--violet)}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;padding:56px 0 90px}
+.badge{display:inline-block;padding:6px 14px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:14px;margin-bottom:22px;background:rgba(23,20,43,.6)}
+.badge b{color:var(--lime)}
+h1{font:800 clamp(36px,6vw,64px)/1.05 Unbounded,sans-serif;letter-spacing:-1px}
+h1 .grad{background:linear-gradient(90deg,var(--violet),var(--pink),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:var(--muted);font-size:19px;margin:22px 0 32px;max-width:520px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+
+/* телефон с чатом */
+.phone{position:relative;justify-self:center;width:min(340px,100%);border-radius:36px;padding:14px;background:linear-gradient(160deg,#2a2548,#14112a);box-shadow:0 40px 80px -30px rgba(139,92,246,.6);animation:float 6s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-12px)}}
+.screen{border-radius:26px;background:#0f0d1d;padding:16px;min-height:480px;display:flex;flex-direction:column;gap:10px}
+.chat-head{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.ava{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--violet),var(--pink));display:grid;place-items:center;font:800 16px Unbounded}
+.chat-head small{display:block;color:var(--lime);font-size:12px}
+.msg{max-width:85%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.45;opacity:0;animation:pop .5s forwards}
+.msg.bot{background:var(--card);border-top-left-radius:4px}
+.msg.me{align-self:flex-end;background:linear-gradient(90deg,var(--violet),#a855f7);border-top-right-radius:4px}
+.msg:nth-child(2){animation-delay:.3s}.msg:nth-child(3){animation-delay:1.1s}.msg:nth-child(4){animation-delay:1.9s}.msg:nth-child(5){animation-delay:2.7s}.msg:nth-child(6){animation-delay:3.5s}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.msg b{color:var(--cyan)}
+
+/* секции */
+section{padding:80px 0}
+.eyebrow{color:var(--pink);font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:13px}
+h2{font:700 clamp(28px,4vw,42px)/1.15 Unbounded,sans-serif;margin:12px 0 40px;max-width:760px}
+
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{position:relative;background:linear-gradient(180deg,rgba(23,20,43,.9),rgba(18,16,34,.9));border:1px solid var(--line);border-radius:22px;padding:26px;transition:.25s;overflow:hidden}
+.card:hover{transform:translateY(-4px);border-color:var(--violet)}
+.card::after{content:"";position:absolute;inset:auto -40% -60% auto;width:180px;height:180px;border-radius:50%;background:var(--c,var(--violet));filter:blur(70px);opacity:.25}
+.icon{font-size:30px;margin-bottom:14px}
+.card h3{font:700 18px Unbounded,sans-serif;margin-bottom:8px}
+.card p{color:var(--muted);font-size:15px}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:s}
+.step{padding:28px;border-radius:22px;border:1px dashed var(--line)}
+.step::before{counter-increment:s;content:"0" counter(s);font:800 44px Unbounded,sans-serif;background:linear-gradient(90deg,var(--violet),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+.step h3{font-size:18px;margin:8px 0 6px}
+.step p{color:var(--muted);font-size:15px}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.stat{text-align:center;padding:30px 16px;border-radius:22px;background:var(--card);border:1px solid var(--line)}
+.stat b{display:block;font:800 clamp(30px,4vw,44px) Unbounded,sans-serif;background:linear-gradient(90deg,var(--cyan),var(--lime));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat span{color:var(--muted);font-size:14px}
+
+.final{margin:40px 0 80px;padding:56px 28px;border-radius:32px;text-align:center;background:linear-gradient(135deg,rgba(139,92,246,.35),rgba(236,72,153,.25));border:1px solid rgba(236,72,153,.4)}
+.final h2{margin:0 auto 14px}
+.final p{color:#d6d3ea;margin-bottom:28px}
+footer{padding:30px 0;color:var(--muted);font-size:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+.reveal{opacity:0;transform:translateY(24px);transition:.7s}
+.reveal.on{opacity:1;transform:none}
+
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr;padding-top:24px}
+  .features,.steps{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  nav .btn{display:none}
+}
+</style>
+</head>
+<body>
+<div class="glow"></div><div class="grid"></div>
+
+<div class="wrap">
+  <nav>
+    <div class="logo">PA<span>RA</span></div>
+    <a class="btn btn-ghost" href="#features">Возможности</a>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <div class="badge">🟢 Работает в учебной группе · <b>каждый день</b></div>
+      <h1>Учебная группа<br>на <span class="grad">автопилоте</span></h1>
+      <p class="lead">Para — Telegram-бот, который сам присылает расписание, напоминает о парах, ведёт посещаемость и помогает с домашкой с помощью ИИ.</p>
+      <div class="cta">
+        <a class="btn btn-main" href="#features">Посмотреть, что умеет →</a>
+        <a class="btn btn-ghost" href="#how">Как это работает</a>
+      </div>
+    </div>
+
+    <div class="phone" aria-hidden="true">
+      <div class="screen">
+        <div class="chat-head"><div class="ava">P</div><div><b>Para</b><small>онлайн</small></div></div>
+        <div class="msg me">Какие пары завтра?</div>
+        <div class="msg bot">📅 <b>Четверг</b><br>1. 09:00 — Сети<br>2. 10:40 — Английский<br>3. 12:40 — Философия</div>
+        <div class="msg bot">⏰ Через <b>10 минут</b> «Сети», ауд. 214</div>
+        <div class="msg me">Реши задачу из файла 📎</div>
+        <div class="msg bot">✅ Готово! Решение в Word по ГОСТу — отправил в чат.</div>
+      </div>
+    </div>
+  </header>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <div class="eyebrow">Возможности</div>
+    <h2 class="reveal">Всё, что раньше делал староста вручную</h2>
+    <div class="features">
+      <div class="card reveal" style="--c:var(--violet)"><div class="icon">📅</div><h3>Расписание за секунду</h3><p>Пары на день и неделю прямо в Telegram. Обновляется само, работает даже когда сайт колледжа лежит.</p></div>
+      <div class="card reveal" style="--c:var(--pink)"><div class="icon">⏰</div><h3>Напоминания о парах</h3><p>За 10 минут до начала — уведомление с аудиторией. Старые сообщения бот убирает сам, чат остаётся чистым.</p></div>
+      <div class="card reveal" style="--c:var(--cyan)"><div class="icon">✅</div><h3>Посещаемость</h3><p>Отметки в один клик, общая облачная таблица и сводка старосте: кто пришёл, кто опоздал, кто пропустил.</p></div>
+      <div class="card reveal" style="--c:var(--lime)"><div class="icon">🤖</div><h3>ИИ-помощник</h3><p>Отправь задание текстом, фото или файлом — получи разбор и готовый документ Word по ГОСТу.</p></div>
+      <div class="card reveal" style="--c:var(--violet)"><div class="icon">🎙️</div><h3>Голосовые → текст</h3><p>Бот расшифровывает голосовые и кружочки за доли секунды — можно не слушать, а прочитать.</p></div>
+      <div class="card reveal" style="--c:var(--pink)"><div class="icon">🏆</div><h3>80 достижений</h3><p>Рейтинг группы, опыт и ачивки за посещаемость и активность — учиться немного веселее.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="eyebrow">Как это работает</div>
+    <h2 class="reveal">Три шага — и группа на автопилоте</h2>
+    <div class="steps">
+      <div class="step reveal"><h3>Добавьте бота в чат</h3><p>Para сам создаст темы: расписание, домашка, объявления.</p></div>
+      <div class="step reveal"><h3>Выберите группу</h3><p>Бот подтянет расписание колледжа и начнёт присылать напоминания.</p></div>
+      <div class="step reveal"><h3>Пользуйтесь</h3><p>Кнопки, команды и ИИ-помощник — всё внутри Telegram, без лишних приложений.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Под капотом</div>
+    <h2 class="reveal">Надёжно, как у больших сервисов</h2>
+    <div class="stats">
+      <div class="stat reveal"><b>&lt;2 мс</b><span>ответ расписания из кэша</span></div>
+      <div class="stat reveal"><b>977</b><span>автотестов проходят</span></div>
+      <div class="stat reveal"><b>6</b><span>сервисов в Docker</span></div>
+      <div class="stat reveal"><b>24/7</b><span>бэкапы и мониторинг</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="final reveal">
+    <h2>Хотите такого бота для своей группы?</h2>
+    <p>Расскажу, как подключить Para или сделать похожего бота под ваши задачи.</p>
+    <a class="btn btn-main" href="https://github.com/Utkautka1" target="_blank" rel="noopener">Связаться через GitHub →</a>
+  </div>
+  <footer><span>© 2026 Para · сделано Дмитрием</span><span>Python · aiogram 3 · FastAPI · Redis · Docker</span></footer>
+</div>
+
+<script>
+// Плавное появление блоков при прокрутке
+const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('on')), {threshold: .15});
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
