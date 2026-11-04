@@ -2,132 +2,848 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Para — учебная группа на автопилоте</title>
-<meta name="description" content="Telegram-бот для учебной группы: расписание, напоминания о парах, посещаемость, ИИ-помощник с домашкой и расшифровка голосовых.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Para — экосистема учебной группы на автопилоте</title>
+<meta name="description" content="Умный Telegram-бот и Mini App для академической группы: расписание без сбоев, напоминания о парах, отметки посещаемости, расшифровка голосовых и ИИ-помощник с решением задач по ГОСТу.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0b0a14; --bg2:#121022; --card:#17142b; --line:#2a2548;
-  --text:#ecebf5; --muted:#a29fbf; --violet:#8b5cf6; --pink:#ec4899; --cyan:#22d3ee; --lime:#a3e635;
+:root {
+  --bg: #07060e;
+  --bg-card: rgba(18, 15, 33, 0.72);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(139, 92, 246, 0.45);
+  --text: #f3f2fc;
+  --muted: #9490b8;
+  --violet: #8b5cf6;
+  --violet-glow: rgba(139, 92, 246, 0.35);
+  --pink: #ec4899;
+  --pink-glow: rgba(236, 72, 153, 0.28);
+  --cyan: #06b6d4;
+  --lime: #10b981;
+  --font-heading: 'Unbounded', system-ui, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font:16px/1.6 Manrope,system-ui,sans-serif;overflow-x:hidden}
-a{color:inherit;text-decoration:none}
-.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
 
-/* фон: мягкие пятна + сетка */
-.glow{position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:
-    radial-gradient(600px 400px at 15% 10%,rgba(139,92,246,.35),transparent 70%),
-    radial-gradient(500px 400px at 90% 30%,rgba(236,72,153,.22),transparent 70%),
-    radial-gradient(600px 500px at 50% 100%,rgba(34,211,238,.15),transparent 70%);}
-.grid{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.25;
-  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
-  background-size:56px 56px;mask-image:radial-gradient(ellipse at 50% 20%,#000 30%,transparent 75%)}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; color-scheme: dark; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.65 var(--font-body);
+  overflow-x: hidden;
+  min-height: 100vh;
+  position: relative;
+  selection-background-color: var(--violet);
+}
 
-nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
-.logo{font:800 22px Unbounded,sans-serif;letter-spacing:.5px}
-.logo span{background:linear-gradient(90deg,var(--violet),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:999px;font-weight:700;transition:.2s}
-.btn-main{background:linear-gradient(90deg,var(--violet),var(--pink));color:#fff;box-shadow:0 10px 30px -10px rgba(236,72,153,.6)}
-.btn-main:hover{transform:translateY(-2px);box-shadow:0 16px 40px -10px rgba(236,72,153,.8)}
-.btn-ghost{border:1px solid var(--line);color:var(--text)}
-.btn-ghost:hover{border-color:var(--violet)}
+::selection { background: rgba(139, 92, 246, 0.35); color: #fff; }
+a { color: inherit; text-decoration: none; }
 
-/* hero */
-.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;padding:56px 0 90px}
-.badge{display:inline-block;padding:6px 14px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:14px;margin-bottom:22px;background:rgba(23,20,43,.6)}
-.badge b{color:var(--lime)}
-h1{font:800 clamp(36px,6vw,64px)/1.05 Unbounded,sans-serif;letter-spacing:-1px}
-h1 .grad{background:linear-gradient(90deg,var(--violet),var(--pink),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
-.lead{color:var(--muted);font-size:19px;margin:22px 0 32px;max-width:520px}
-.cta{display:flex;gap:12px;flex-wrap:wrap}
+/* Фоновые градиенты и неоновые акценты */
+.ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+}
+.ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.42;
+  will-change: transform;
+  animation: orbFloat 18s ease-in-out infinite alternate;
+}
+.orb-1 {
+  width: 600px;
+  height: 500px;
+  background: radial-gradient(circle, var(--violet) 0%, transparent 70%);
+  top: -10%;
+  left: -5%;
+}
+.orb-2 {
+  width: 550px;
+  height: 480px;
+  background: radial-gradient(circle, var(--pink) 0%, transparent 70%);
+  top: 25%;
+  right: -10%;
+  animation-delay: -5s;
+}
+.orb-3 {
+  width: 700px;
+  height: 600px;
+  background: radial-gradient(circle, var(--cyan) 0%, transparent 70%);
+  bottom: 0%;
+  left: 20%;
+  opacity: 0.22;
+  animation-delay: -9s;
+}
+@keyframes orbFloat {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, 30px) scale(1.08); }
+  100% { transform: translate(-30px, 50px) scale(0.95); }
+}
 
-/* телефон с чатом */
-.phone{position:relative;justify-self:center;width:min(340px,100%);border-radius:36px;padding:14px;background:linear-gradient(160deg,#2a2548,#14112a);box-shadow:0 40px 80px -30px rgba(139,92,246,.6);animation:float 6s ease-in-out infinite}
-@keyframes float{50%{transform:translateY(-12px)}}
-.screen{border-radius:26px;background:#0f0d1d;padding:16px;min-height:480px;display:flex;flex-direction:column;gap:10px}
-.chat-head{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:4px}
-.ava{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--violet),var(--pink));display:grid;place-items:center;font:800 16px Unbounded}
-.chat-head small{display:block;color:var(--lime);font-size:12px}
-.msg{max-width:85%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.45;opacity:0;animation:pop .5s forwards}
-.msg.bot{background:var(--card);border-top-left-radius:4px}
-.msg.me{align-self:flex-end;background:linear-gradient(90deg,var(--violet),#a855f7);border-top-right-radius:4px}
-.msg:nth-child(2){animation-delay:.3s}.msg:nth-child(3){animation-delay:1.1s}.msg:nth-child(4){animation-delay:1.9s}.msg:nth-child(5){animation-delay:2.7s}.msg:nth-child(6){animation-delay:3.5s}
-@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.msg b{color:var(--cyan)}
+.grid-overlay {
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at 50% 20%, #000 35%, transparent 78%);
+  pointer-events: none;
+  z-index: -1;
+}
 
-/* секции */
-section{padding:80px 0}
-.eyebrow{color:var(--pink);font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:13px}
-h2{font:700 clamp(28px,4vw,42px)/1.15 Unbounded,sans-serif;margin:12px 0 40px;max-width:760px}
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
 
-.features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.card{position:relative;background:linear-gradient(180deg,rgba(23,20,43,.9),rgba(18,16,34,.9));border:1px solid var(--line);border-radius:22px;padding:26px;transition:.25s;overflow:hidden}
-.card:hover{transform:translateY(-4px);border-color:var(--violet)}
-.card::after{content:"";position:absolute;inset:auto -40% -60% auto;width:180px;height:180px;border-radius:50%;background:var(--c,var(--violet));filter:blur(70px);opacity:.25}
-.icon{font-size:30px;margin-bottom:14px}
-.card h3{font:700 18px Unbounded,sans-serif;margin-bottom:8px}
-.card p{color:var(--muted);font-size:15px}
+/* Навигация */
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0;
+  position: relative;
+  z-index: 50;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 800 24px var(--font-heading);
+  letter-spacing: -0.5px;
+}
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--violet), var(--pink));
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 900;
+  color: #fff;
+  box-shadow: 0 0 20px var(--violet-glow);
+}
+.brand span {
+  background: linear-gradient(90deg, #fff 30%, var(--muted) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.nav-link {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+}
+.nav-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
 
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:s}
-.step{padding:28px;border-radius:22px;border:1px dashed var(--line)}
-.step::before{counter-increment:s;content:"0" counter(s);font:800 44px Unbounded,sans-serif;background:linear-gradient(90deg,var(--violet),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
-.step h3{font-size:18px;margin:8px 0 6px}
-.step p{color:var(--muted);font-size:15px}
+/* Кнопки */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 26px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  border: none;
+  outline: none;
+}
+.btn-primary {
+  background: linear-gradient(100deg, var(--violet), #a855f7 50%, var(--pink));
+  color: #fff;
+  box-shadow: 0 10px 32px -8px rgba(236, 72, 153, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px -6px rgba(236, 72, 153, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.btn-glass {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+.btn-glass:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
 
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
-.stat{text-align:center;padding:30px 16px;border-radius:22px;background:var(--card);border:1px solid var(--line)}
-.stat b{display:block;font:800 clamp(30px,4vw,44px) Unbounded,sans-serif;background:linear-gradient(90deg,var(--cyan),var(--lime));-webkit-background-clip:text;background-clip:text;color:transparent}
-.stat span{color:var(--muted);font-size:14px}
+/* Hero Секция */
+.hero {
+  padding: 48px 0 96px;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 56px;
+  align-items: center;
+}
+.hero-content {
+  position: relative;
+}
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #34d399;
+  margin-bottom: 24px;
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lime);
+  box-shadow: 0 0 12px var(--lime);
+  animation: pulseDot 2s infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
 
-.final{margin:40px 0 80px;padding:56px 28px;border-radius:32px;text-align:center;background:linear-gradient(135deg,rgba(139,92,246,.35),rgba(236,72,153,.25));border:1px solid rgba(236,72,153,.4)}
-.final h2{margin:0 auto 14px}
-.final p{color:#d6d3ea;margin-bottom:28px}
-footer{padding:30px 0;color:var(--muted);font-size:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+h1 {
+  font: 900 clamp(38px, 5.5vw, 68px)/1.04 var(--font-heading);
+  letter-spacing: -1.5px;
+  margin-bottom: 24px;
+}
+h1 .grad {
+  background: linear-gradient(110deg, var(--violet) 0%, var(--pink) 50%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+}
+.lead {
+  font-size: clamp(17px, 1.8vw, 20px);
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 540px;
+  margin-bottom: 36px;
+}
+.hero-cta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 36px;
+}
 
-.reveal{opacity:0;transform:translateY(24px);transition:.7s}
-.reveal.on{opacity:1;transform:none}
+/* Свитчер сценариев прямо в Hero */
+.scenario-bar {
+  margin-top: 12px;
+}
+.scenario-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.scenario-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pill {
+  padding: 8px 15px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.pill:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.pill.active {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: var(--violet);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.35);
+}
 
-@media (max-width:900px){
-  .hero{grid-template-columns:1fr;padding-top:24px}
-  .features,.steps{grid-template-columns:1fr}
-  .stats{grid-template-columns:repeat(2,1fr)}
-  nav .btn{display:none}
+/* 3D Смартфон (Интерактивный диалог) */
+.phone-wrapper {
+  position: relative;
+  justify-self: center;
+  width: 100%;
+  max-width: 360px;
+}
+.phone {
+  background: linear-gradient(165deg, #252042, #100d22 60%, #0c0a1a);
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  border-radius: 46px;
+  padding: 12px;
+  box-shadow: 
+    0 35px 80px -20px rgba(139, 92, 246, 0.5),
+    0 0 0 1px rgba(0, 0, 0, 0.8),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  animation: phoneHover 7s ease-in-out infinite alternate;
+}
+@keyframes phoneHover {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(-14px) rotate(0.8deg); }
+}
+
+.island {
+  width: 110px;
+  height: 24px;
+  background: #000;
+  border-radius: 999px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 8px;
+}
+.camera-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.screen {
+  background: #0d0b1a;
+  border-radius: 36px;
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.tg-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  background: rgba(19, 16, 36, 0.95);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+.tg-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--violet), var(--pink));
+  display: grid;
+  place-items: center;
+  font: 800 17px var(--font-heading);
+  color: #fff;
+  box-shadow: 0 0 16px var(--violet-glow);
+}
+.tg-meta h4 {
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.verified {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  background: var(--cyan);
+  border-radius: 50%;
+  color: #07060e;
+  font-size: 10px;
+  font-weight: 900;
+}
+.tg-meta small {
+  display: block;
+  font-size: 12px;
+  color: var(--lime);
+}
+
+.chat-flow {
+  flex: 1;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+.msg {
+  max-width: 86%;
+  padding: 12px 15px;
+  border-radius: 18px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  position: relative;
+  animation: msgAppear 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes msgAppear {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.msg.user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--violet), #7c3aed);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.msg.bot {
+  align-self: flex-start;
+  background: rgba(28, 24, 52, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom-left-radius: 4px;
+}
+.msg.bot b { color: var(--cyan); }
+.msg.bot .time-tag {
+  display: inline-block;
+  color: var(--pink);
+  font-weight: 700;
+}
+
+.typing-indicator {
+  display: none;
+  align-self: flex-start;
+  background: rgba(28, 24, 52, 0.6);
+  padding: 8px 14px;
+  border-radius: 16px;
+  gap: 4px;
+}
+.typing-indicator.active { display: inline-flex; }
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--muted);
+  border-radius: 50%;
+  animation: typeBounce 1.4s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typeBounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-5px); }
+}
+
+.tg-bar {
+  padding: 12px 16px;
+  background: rgba(19, 16, 36, 0.95);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 13px;
+}
+.tg-input-fake {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Секции общие */
+section {
+  padding: 96px 0;
+  position: relative;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--pink);
+  margin-bottom: 14px;
+}
+.section-title {
+  font: 800 clamp(30px, 4.2vw, 48px)/1.12 var(--font-heading);
+  letter-spacing: -1px;
+  margin-bottom: 20px;
+}
+.section-subtitle {
+  color: var(--muted);
+  font-size: 18px;
+  max-width: 640px;
+  margin-bottom: 56px;
+}
+
+/* Bento Grid */
+.bento {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+}
+.card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  padding: 32px;
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+.card:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-4px);
+}
+.card-spotlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(400px circle at var(--x, 50%) var(--y, 50%), rgba(139, 92, 246, 0.15), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.card:hover .card-spotlight {
+  opacity: 1;
+}
+
+.col-8 { grid-column: span 8; }
+.col-4 { grid-column: span 4; }
+.col-6 { grid-column: span 6; }
+.col-12 { grid-column: span 12; }
+
+.card-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  margin-bottom: 22px;
+}
+.card h3 {
+  font: 700 22px var(--font-heading);
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
+.card p {
+  color: var(--muted);
+  font-size: 15.5px;
+  line-height: 1.6;
+}
+
+/* Элементы внутри Bento */
+.gost-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--cyan);
+  margin-top: 14px;
+}
+.doc-preview {
+  margin-top: 20px;
+  background: rgba(10, 8, 20, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.doc-preview span {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: #fff;
+}
+.doc-status {
+  color: var(--lime);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.timeline-mini {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.timeline-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+}
+.timeline-item.active {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+.timeline-item.active b { color: var(--pink); }
+
+.audio-wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 28px;
+  margin-top: 20px;
+}
+.wave-bar {
+  width: 4px;
+  background: var(--violet);
+  border-radius: 999px;
+  animation: wavePulse 1.2s infinite ease-in-out;
+}
+.wave-bar:nth-child(1) { height: 8px; animation-delay: 0.1s; }
+.wave-bar:nth-child(2) { height: 18px; animation-delay: 0.3s; }
+.wave-bar:nth-child(3) { height: 26px; animation-delay: 0.2s; }
+.wave-bar:nth-child(4) { height: 14px; animation-delay: 0.4s; }
+.wave-bar:nth-child(5) { height: 22px; animation-delay: 0.15s; }
+.wave-bar:nth-child(6) { height: 10px; animation-delay: 0.35s; }
+@keyframes wavePulse {
+  0%, 100% { transform: scaleY(0.7); opacity: 0.6; }
+  50% { transform: scaleY(1.3); opacity: 1; }
+}
+
+/* Шаги подключения */
+.steps-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  counter-reset: stepCount;
+}
+.step-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 34px 28px;
+  position: relative;
+}
+.step-box::before {
+  counter-increment: stepCount;
+  content: "0" counter(stepCount);
+  font: 900 48px var(--font-heading);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: block;
+  margin-bottom: 12px;
+}
+.step-box h3 {
+  font: 700 20px var(--font-heading);
+  margin-bottom: 10px;
+}
+.step-box p {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* Метрики и архитектура */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+.stat-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 28px 20px;
+  text-align: center;
+}
+.stat-box .num {
+  font: 900 clamp(32px, 4vw, 48px) var(--font-heading);
+  background: linear-gradient(90deg, var(--cyan), var(--lime));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 8px;
+  letter-spacing: -1px;
+}
+.stat-box .desc {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Финальный Call-to-Action */
+.cta-banner {
+  margin: 64px 0 100px;
+  border-radius: 36px;
+  padding: 72px 36px;
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 0%, rgba(139, 92, 246, 0.35), transparent 75%), var(--bg-card);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  box-shadow: 0 30px 80px -20px rgba(139, 92, 246, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+.cta-banner h2 {
+  font: 900 clamp(32px, 4.5vw, 54px)/1.1 var(--font-heading);
+  margin-bottom: 18px;
+  letter-spacing: -1px;
+}
+.cta-banner p {
+  color: #d1cfe3;
+  font-size: 19px;
+  max-width: 580px;
+  margin: 0 auto 36px;
+}
+
+/* Футер */
+footer {
+  padding: 40px 0;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.tech-stack-tag {
+  display: inline-flex;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #79769e;
+}
+
+/* Intersection Reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Мобильная адаптация */
+@media (max-width: 980px) {
+  .hero { grid-template-columns: 1fr; gap: 40px; padding: 20px 0 60px; }
+  .col-8, .col-4, .col-6 { grid-column: span 12; }
+  .steps-row { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .nav-actions .nav-link { display: none; }
 }
 </style>
 </head>
 <body>
-<div class="glow"></div><div class="grid"></div>
+
+<div class="ambient">
+  <div class="ambient-orb orb-1"></div>
+  <div class="ambient-orb orb-2"></div>
+  <div class="ambient-orb orb-3"></div>
+</div>
+<div class="grid-overlay"></div>
 
 <div class="wrap">
   <nav>
-    <div class="logo">PA<span>RA</span></div>
-    <a class="btn btn-ghost" href="#features">Возможности</a>
+    <a href="#" class="brand">
+      <div class="brand-mark">P</div>
+      <div>PA<span>RA</span></div>
+    </a>
+    <div class="nav-actions">
+      <a href="#features" class="nav-link">Возможности</a>
+      <a href="#architecture" class="nav-link">Архитектура</a>
+      <a href="https://github.com/Utkautka1/para-landing" target="_blank" rel="noopener" class="btn btn-glass">GitHub Репозиторий</a>
+    </div>
   </nav>
 
   <header class="hero">
-    <div>
-      <div class="badge">🟢 Работает в учебной группе · <b>каждый день</b></div>
+    <div class="hero-content">
+      <div class="live-badge">
+        <span class="live-dot"></span>
+        Работает в боевом режиме · учебная группа на автопилоте
+      </div>
       <h1>Учебная группа<br>на <span class="grad">автопилоте</span></h1>
-      <p class="lead">Para — Telegram-бот, который сам присылает расписание, напоминает о парах, ведёт посещаемость и помогает с домашкой с помощью ИИ.</p>
-      <div class="cta">
-        <a class="btn btn-main" href="#features">Посмотреть, что умеет →</a>
-        <a class="btn btn-ghost" href="#how">Как это работает</a>
+      <p class="lead">Экосистема для студентов и старост: умное расписание в Telegram, автоматические отметки посещаемости, мгновенная расшифровка голосовых и ИИ-тьютор для решения домашних заданий по ГОСТу.</p>
+      
+      <div class="hero-cta">
+        <a href="#features" class="btn btn-primary">Изучить возможности →</a>
+        <a href="https://github.com/Utkautka1" target="_blank" rel="noopener" class="btn btn-glass">Связаться с автором</a>
+      </div>
+
+      <div class="scenario-bar">
+        <div class="scenario-label">Интерактивный просмотр сценариев:</div>
+        <div class="scenario-pills">
+          <button class="pill active" onclick="switchScenario('schedule')">📅 Расписание</button>
+          <button class="pill" onclick="switchScenario('solver')">🤖 ИИ-домашка</button>
+          <button class="pill" onclick="switchScenario('voice')">🎙️ Голосовые</button>
+          <button class="pill" onclick="switchScenario('attendance')">✅ Посещаемость</button>
+        </div>
       </div>
     </div>
 
-    <div class="phone" aria-hidden="true">
-      <div class="screen">
-        <div class="chat-head"><div class="ava">P</div><div><b>Para</b><small>онлайн</small></div></div>
-        <div class="msg me">Какие пары завтра?</div>
-        <div class="msg bot">📅 <b>Четверг</b><br>1. 09:00 — Сети<br>2. 10:40 — Английский<br>3. 12:40 — Философия</div>
-        <div class="msg bot">⏰ Через <b>10 минут</b> «Сети», ауд. 214</div>
-        <div class="msg me">Реши задачу из файла 📎</div>
-        <div class="msg bot">✅ Готово! Решение в Word по ГОСТу — отправил в чат.</div>
+    <div class="phone-wrapper">
+      <div class="phone" aria-hidden="true">
+        <div class="island"><div class="camera-dot"></div></div>
+        <div class="screen">
+          <div class="tg-header">
+            <div class="tg-avatar">P</div>
+            <div class="tg-meta">
+              <h4>Para Bot <span class="verified">✓</span></h4>
+              <small>бот · онлайн</small>
+            </div>
+          </div>
+
+          <div class="chat-flow" id="chatFlow">
+            <!-- Динамически наполняется скриптом -->
+          </div>
+
+          <div class="typing-indicator" id="typingIndicator">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+
+          <div class="tg-bar">
+            <div class="tg-input-fake">
+              <span>📎</span>
+              <span>Сообщение...</span>
+            </div>
+            <span>🎙️</span>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -135,57 +851,210 @@ footer{padding:30px 0;color:var(--muted);font-size:14px;border-top:1px solid var
 
 <section id="features">
   <div class="wrap">
-    <div class="eyebrow">Возможности</div>
-    <h2 class="reveal">Всё, что раньше делал староста вручную</h2>
-    <div class="features">
-      <div class="card reveal" style="--c:var(--violet)"><div class="icon">📅</div><h3>Расписание за секунду</h3><p>Пары на день и неделю прямо в Telegram. Обновляется само, работает даже когда сайт колледжа лежит.</p></div>
-      <div class="card reveal" style="--c:var(--pink)"><div class="icon">⏰</div><h3>Напоминания о парах</h3><p>За 10 минут до начала — уведомление с аудиторией. Старые сообщения бот убирает сам, чат остаётся чистым.</p></div>
-      <div class="card reveal" style="--c:var(--cyan)"><div class="icon">✅</div><h3>Посещаемость</h3><p>Отметки в один клик, общая облачная таблица и сводка старосте: кто пришёл, кто опоздал, кто пропустил.</p></div>
-      <div class="card reveal" style="--c:var(--lime)"><div class="icon">🤖</div><h3>ИИ-помощник</h3><p>Отправь задание текстом, фото или файлом — получи разбор и готовый документ Word по ГОСТу.</p></div>
-      <div class="card reveal" style="--c:var(--violet)"><div class="icon">🎙️</div><h3>Голосовые → текст</h3><p>Бот расшифровывает голосовые и кружочки за доли секунды — можно не слушать, а прочитать.</p></div>
-      <div class="card reveal" style="--c:var(--pink)"><div class="icon">🏆</div><h3>80 достижений</h3><p>Рейтинг группы, опыт и ачивки за посещаемость и активность — учиться немного веселее.</p></div>
+    <div class="eyebrow">Модульная архитектура</div>
+    <h2 class="section-title reveal">Всё, на что староста тратил часы,<br>теперь работает за секунды</h2>
+    <p class="section-subtitle reveal">Мы объединили асинхронный Telegram-бэкенд на Python с современными AI-пайплайнами, чтобы избавить группу от хаоса в чате.</p>
+
+    <div class="bento">
+      <!-- Большой блок ИИ -->
+      <div class="card col-8 reveal" style="--c: var(--violet)">
+        <div class="card-spotlight"></div>
+        <div class="card-icon">🤖</div>
+        <h3>ИИ-тьютор и решение задач по ГОСТу</h3>
+        <p>Отправь фото рукописного задания, условие текстом или PDF-файл. Нейросетевой конвейер проводит OCR-распознавание, строит пошаговое математическое решение и отдаёт готовый Word-файл со стандартными полями, таблицами и формулами.</p>
+        <div class="gost-badge">ГОСТ 7.32-2017 · MathML / Equation · Формулы & Графика</div>
+        <div class="doc-preview">
+          <span>📄 Лабораторная_3_Сети_Решение.docx</span>
+          <span class="doc-status">Готово к сдаче ✓</span>
+        </div>
+      </div>
+
+      <!-- Расписание -->
+      <div class="card col-4 reveal" style="--c: var(--pink)">
+        <div class="card-spotlight"></div>
+        <div class="card-icon">⚡</div>
+        <h3>Расписание с кэшем &lt;2 мс</h3>
+        <p>Мгновенный ответ даже в моменты, когда официальный сайт колледжа лежит под нагрузкой.</p>
+        <div class="timeline-mini">
+          <div class="timeline-item active">
+            <span>09:00 Архитектура сетей</span>
+            <b>ауд. 214</b>
+          </div>
+          <div class="timeline-item">
+            <span>10:40 Базы данных (SQL)</span>
+            <span>ауд. 308</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Голосовые -->
+      <div class="card col-4 reveal" style="--c: var(--cyan)">
+        <div class="card-spotlight"></div>
+        <div class="card-icon">🎙️</div>
+        <h3>Транскрибация речи</h3>
+        <p>Преподаватель или староста записали голосовое на 3 минуты? Бот расшифрует кружочки и аудиосообщения за доли секунды.</p>
+        <div class="audio-wave">
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+        </div>
+      </div>
+
+      <!-- Посещаемость -->
+      <div class="card col-4 reveal" style="--c: var(--lime)">
+        <div class="card-spotlight"></div>
+        <div class="card-icon">📊</div>
+        <h3>Облачный журнал старосты</h3>
+        <p>Автоматическая синхронизация отметок в Google/Яндекс Таблицы. Сводка за 1 клик: кто заболел, кто опоздал, кто пропустил.</p>
+      </div>
+
+      <!-- Ачивки -->
+      <div class="card col-4 reveal" style="--c: var(--pink)">
+        <div class="card-spotlight"></div>
+        <div class="card-icon">🏆</div>
+        <h3>80+ ачивок и геймификация</h3>
+        <p>Стрики посещаемости, сезонные ранги группы и опыт за своевременную сдачу дедлайнов — учиться становится азартнее.</p>
+      </div>
     </div>
   </div>
 </section>
 
 <section id="how">
   <div class="wrap">
-    <div class="eyebrow">Как это работает</div>
-    <h2 class="reveal">Три шага — и группа на автопилоте</h2>
-    <div class="steps">
-      <div class="step reveal"><h3>Добавьте бота в чат</h3><p>Para сам создаст темы: расписание, домашка, объявления.</p></div>
-      <div class="step reveal"><h3>Выберите группу</h3><p>Бот подтянет расписание колледжа и начнёт присылать напоминания.</p></div>
-      <div class="step reveal"><h3>Пользуйтесь</h3><p>Кнопки, команды и ИИ-помощник — всё внутри Telegram, без лишних приложений.</p></div>
+    <div class="eyebrow">Простой онбординг</div>
+    <h2 class="section-title reveal">Запуск в группе за 3 шага</h2>
+    <div class="steps-row">
+      <div class="step-box reveal">
+        <h3>Добавьте бота в чат</h3>
+        <p>Para автоматически определит структуру группы и создаст нужные ветки: расписание, домашка, важное.</p>
+      </div>
+      <div class="step-box reveal">
+        <h3>Выберите номер группы</h3>
+        <p>Синхронизируем расписание учебного заведения и включаем утренние push-сводки.</p>
+      </div>
+      <div class="step-box reveal">
+        <h3>Наслаждайтесь порядком</h3>
+        <p>Все вопросы «какая сейчас пара» и «что задали» бот берёт на себя 24/7.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<section>
+<section id="architecture">
   <div class="wrap">
-    <div class="eyebrow">Под капотом</div>
-    <h2 class="reveal">Надёжно, как у больших сервисов</h2>
-    <div class="stats">
-      <div class="stat reveal"><b>&lt;2 мс</b><span>ответ расписания из кэша</span></div>
-      <div class="stat reveal"><b>977</b><span>автотестов проходят</span></div>
-      <div class="stat reveal"><b>6</b><span>сервисов в Docker</span></div>
-      <div class="stat reveal"><b>24/7</b><span>бэкапы и мониторинг</span></div>
+    <div class="eyebrow">Инженерный стек</div>
+    <h2 class="section-title reveal">Надёжность уровня Enterprise</h2>
+    <p class="section-subtitle reveal">Сервис спроектирован по модульной микросервисной схеме с прицелом на высокую отказоустойчивость и минимальный latency.</p>
+
+    <div class="stats-grid">
+      <div class="stat-box reveal">
+        <div class="num">&lt;2 мс</div>
+        <div class="desc">Время ответа расписания (Redis InMemory)</div>
+      </div>
+      <div class="stat-box reveal">
+        <div class="num">977</div>
+        <div class="desc">Автоматических unit & integration тестов</div>
+      </div>
+      <div class="stat-box reveal">
+        <div class="num">6</div>
+        <div class="desc">Изолированных контейнеров в Docker</div>
+      </div>
+      <div class="stat-box reveal">
+        <div class="num">99.9%</div>
+        <div class="desc">Uptime и автоматический мониторинг</div>
+      </div>
     </div>
   </div>
 </section>
 
 <div class="wrap">
-  <div class="final reveal">
-    <h2>Хотите такого бота для своей группы?</h2>
-    <p>Расскажу, как подключить Para или сделать похожего бота под ваши задачи.</p>
-    <a class="btn btn-main" href="https://github.com/Utkautka1" target="_blank" rel="noopener">Связаться через GitHub →</a>
+  <div class="cta-banner reveal">
+    <h2>Хотите внедрить автопилот<br>в свою учебную группу?</h2>
+    <p>Проект открыт к внедрению и масштабированию. Готов обсудить интеграцию или разработку кастомного AI-ассистента.</p>
+    <a href="https://github.com/Utkautka1" target="_blank" rel="noopener" class="btn btn-primary">Связаться через GitHub →</a>
   </div>
-  <footer><span>© 2026 Para · сделано Дмитрием</span><span>Python · aiogram 3 · FastAPI · Redis · Docker</span></footer>
+
+  <footer>
+    <div>© 2026 Para · Спроектировано и разработано Дмитрием Стрыгиным</div>
+    <div class="tech-stack-tag">Python 3.12 · aiogram 3 · FastAPI · Redis · PostgreSQL · Docker</div>
+  </footer>
 </div>
 
 <script>
-// Плавное появление блоков при прокрутке
-const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('on')), {threshold: .15});
-document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+// Интерактивные сценарии чата в телефоне
+const scenarios = {
+  schedule: [
+    { type: 'user', text: 'Какие пары завтра?' },
+    { type: 'bot', text: '📅 <b>Четверг, 2-я неделя</b>:<br>1. 09:00 — Сети и телекоммуникации (ауд. 214)<br>2. 10:40 — Технологии баз данных (ауд. 308)<br>3. 12:40 — Философия (ауд. 102)' },
+    { type: 'bot', text: '⏰ <span class="time-tag">Через 10 минут</span> первая пара! Не забудь лабораторную.' }
+  ],
+  solver: [
+    { type: 'user', text: 'Реши задачу №4 по сетям из файла 📎' },
+    { type: 'bot', text: '⚙️ <b>Анализирую условие:</b> расчет маски подсети CIDR /26...' },
+    { type: 'bot', text: '✅ <b>Готово!</b> Документ Word оформлен строго по <b>ГОСТ 7.32</b> с таблицей распределения IP. Отправил в личку.' }
+  ],
+  voice: [
+    { type: 'user', text: '🎙️ <i>Голосовое сообщение (0:42)</i>' },
+    { type: 'bot', text: '📝 <b>Расшифровка:</b> «Ребята, староста просил передать: лекцию по базам данных перенесли в 412 аудиторию, всем быть вовремя»' }
+  ],
+  attendance: [
+    { type: 'user', text: '/status' },
+    { type: 'bot', text: '📊 <b>Посещаемость группы:</b><br>• Присутствуют: <b>24</b> чел. (96%)<br>• Болеют: 1 чел.<br>• Облачная таблица деканата обновлена ✓' }
+  ]
+};
+
+function renderMessages(list) {
+  const container = document.getElementById('chatFlow');
+  const indicator = document.getElementById('typingIndicator');
+  container.innerHTML = '';
+  indicator.classList.add('active');
+
+  list.forEach((msg, idx) => {
+    setTimeout(() => {
+      if (idx === list.length - 1) {
+        indicator.classList.remove('active');
+      }
+      const el = document.createElement('div');
+      el.className = `msg ${msg.type}`;
+      el.innerHTML = msg.text;
+      container.appendChild(el);
+      container.scrollTop = container.scrollHeight;
+    }, (idx + 1) * 450);
+  });
+}
+
+function switchScenario(key) {
+  document.querySelectorAll('.scenario-pills .pill').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  renderMessages(scenarios[key]);
+}
+
+// Запуск дефолтного сценария при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+  renderMessages(scenarios.schedule);
+
+  // Spotlight трекинг курсора на карточках
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty('--x', `${x}px`);
+      card.style.setProperty('--y', `${y}px`);
+    });
+  });
+
+  // Scroll Reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+});
 </script>
 </body>
 </html>
